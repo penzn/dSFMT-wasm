@@ -67,6 +67,18 @@ inline static int idxof(int i) {
 #endif
 
 #if defined(HAVE_SSE2)
+#if defined(__EMSCRIPTEN__)
+inline static void convert_c0o1(w128_t *w) {
+    w->sd = wasm_f64x2_add(w->sd, sse2_double_m_one.d128);
+}
+inline static void convert_o0c1(w128_t *w) {
+    w->sd = wasm_f64x2_sub(sse2_double_two.d128, w->sd);
+}
+inline static void convert_o0o1(w128_t *w) {
+    w->si = wasm_v128_or(w->si, sse2_int_one.i128);
+    w->sd = wasm_f64x2_add(w->sd, sse2_double_m_one.d128);
+}
+#else
 /**
  * This function converts the double precision floating point numbers which
  * distribute uniformly in the range [1, 2) to those which distribute uniformly
@@ -97,6 +109,7 @@ inline static void convert_o0o1(w128_t *w) {
     w->si = _mm_or_si128(w->si, sse2_int_one.i128);
     w->sd = _mm_add_pd(w->sd, sse2_double_m_one.d128);
 }
+#endif
 #else /* standard C and altivec */
 /**
  * This function converts the double precision floating point numbers which

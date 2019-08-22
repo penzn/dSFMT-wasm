@@ -24,7 +24,10 @@
 #include "dSFMT.h"
 
 #if defined(HAVE_SSE2)
+#if defined(__EMSCRIPTEN__)
+#else
 #  include <emmintrin.h>
+#endif
 union X128I_T {
     uint64_t u[2];
     __m128i  i128;
@@ -67,6 +70,24 @@ inline static void do_recursion(w128_t *r, w128_t *a, w128_t * b,
     lung->s = w;
 }
 #elif defined(HAVE_SSE2)
+#if defined(__EMSCRIPTEN__)
+inline static void do_recursion(w128_t *r, w128_t *a, w128_t *b, w128_t *u) {
+    __m128i v, w, x, y, z;
+
+    x = a->si;
+    z = wasm_i64x2_shl(x, DSFMT_SL1);
+    y = wasm_v8x16_shuffle(u->si, u->si, 12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3);
+    z = wasm_v128_xor(z, b->si);
+    y = wasm_v128_xor(y, z);
+
+    v = wasm_u64x2_shr(y, DSFMT_SR);
+    w = wasm_v128_and(y, sse2_param_mask.i128);
+    v = wasm_v128_xor(v, x);
+    v = wasm_v128_xor(v, w);
+    r->si = v;
+    u->si = y;
+}
+#else
 /**
  * This function represents the recursion formula.
  * @param r output 128-bit
@@ -90,6 +111,7 @@ inline static void do_recursion(w128_t *r, w128_t *a, w128_t *b, w128_t *u) {
     r->si = v;
     u->si = y;
 }
+#endif
 #else
 /**
  * This function represents the recursion formula.

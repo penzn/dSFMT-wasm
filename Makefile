@@ -24,16 +24,21 @@ OPTI = -O3 -finline-functions -fomit-frame-pointer -DNDEBUG \
 -fno-strict-aliasing --param max-inline-insns-single=1800
 #--param inline-unit-growth=500 --param large-function-growth=900 #for gcc 4
 #OPTI = /Ot /Ob2 /Oy /Ox /Oi /GL /G6
+OPTJS = -O3 -finline-functions -fomit-frame-pointer -DNDEBUG \
+-fno-strict-aliasing
 #STD =
 #STD = -std=c89 -pedantic
 #STD = -std=c99 -pedantic
 STD = -std=c99
 CC = gcc
+JSCC = emcc
 CCFLAGS = $(OPTI) $(WARN) $(STD)
+JSFLAGS = $(OPTJS) $(WARN) $(STD)
 ALTIFLAGS = -mabi=altivec -maltivec -DHAVE_ALTIVEC
 OSXALTIFLAGS = -faltivec -maltivec -DHAVE_ALTIVEC
 SSE2FLAGS = -msse2 -DHAVE_SSE2
 #SSE2FLAGS = /arch:SSE2 /DHAVE_SSE2
+SIMD128FLAGS = -s SIMD=1 -munimplemented-simd128 -DHAVE_SIMD128
 STD_TARGET = test-std-M19937
 ALL_STD_TARGET = test-std-M521 test-std-M1279 test-std-M2203 test-std-M4253 \
 test-std-M11213 test-std-M19937 test-std-M44497 test-std-M86243 \
@@ -46,6 +51,8 @@ SSE2_TARGET = $(STD_TARGET) test-sse2-M19937
 ALL_SSE2_TARGET = test-sse2-M521 test-sse2-M1279 test-sse2-M2203 \
 test-sse2-M4253 test-sse2-M11213 test-sse2-M19937 test-sse2-M44497 \
 test-sse2-M86243 test-sse2-M132049 test-sse2-M216091
+EMCC_STD_TARGET = test-std-M19937.js
+EMCC_SIMD_TARGET = $(EMCC_STD_TARGET) test-simd128-M19937.js
 # ==========================================================
 # comment out or EDIT following lines to get max performance
 # ==========================================================
@@ -85,6 +92,10 @@ std: $(STD_TARGET)
 sse2: $(SSE2_TARGET)
 
 alti: $(ALTI_TARGET)
+
+emcc-std: $(EMCC_STD_TARGET)
+
+emcc-simd: $(EMCC_SIMD_TARGET)
 
 osx-alti:
 	$(MAKE) "ALTIFLAGS=$(OSXALTIFLAGS)" alti
@@ -149,11 +160,17 @@ test-sse2-M11213: test.c dSFMT.c dSFMT.h
 test-std-M19937: test.c dSFMT.c dSFMT.h
 	$(CC) $(CCFLAGS) -DDSFMT_MEXP=19937 -o $@ dSFMT.c test.c
 
+test-std-M19937.js: test.c dSFMT.c dSFMT.h
+	$(JSCC) $(JSFLAGS) -DDSFMT_MEXP=19937 -o $@ dSFMT.c test.c
+
 test-alti-M19937: test.c dSFMT.c dSFMT.h
 	$(CC) $(CCFLAGS) $(ALTIFLAGS) -DDSFMT_MEXP=19937 -o $@ dSFMT.c test.c
 
 test-sse2-M19937: test.c dSFMT.c dSFMT.h
 	$(CC) $(CCFLAGS) $(SSE2FLAGS) -DDSFMT_MEXP=19937 -o $@ dSFMT.c test.c
+
+test-simd128-M19937.js: test.c dSFMT.c dSFMT.h
+	$(JSCC) $(JSFLAGS) $(SIMD128FLAGS) -DDSFMT_MEXP=19937 -o $@ dSFMT.c test.c
 
 test-std-M44497: test.c dSFMT.c dSFMT.h
 	$(CC) $(CCFLAGS) -DDSFMT_MEXP=44497 -o $@ dSFMT.c test.c

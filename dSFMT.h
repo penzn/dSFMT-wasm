@@ -145,18 +145,25 @@ union W128_T {
 };
 
 #elif defined(HAVE_SSE2)
-#if defined(__EMSCRIPTEN__)
-#include <wasm_simd128.h>
-typedef __i64x2 __m128i;
-typedef __f64x2 __m128d;
-#else
 #  include <emmintrin.h>
-#endif
 
 /** 128-bit data structure */
 union W128_T {
     __m128i si;
     __m128d sd;
+    uint64_t u[2];
+    uint32_t u32[4];
+    double d[2];
+};
+#elif defined(HAVE_SIMD128)
+#  include <wasm_simd128.h>
+typedef __i64x2 __m128i;
+typedef __f64x2 __m128d;
+
+/** 128-bit data structure */
+union W128_T {
+    __i64x2 si;
+    __f64x2 sd;
     uint64_t u[2];
     uint32_t u32[4];
     double d[2];

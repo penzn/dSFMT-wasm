@@ -43,13 +43,13 @@ inline static int idxof(int i);
 static void initial_mask(dsfmt_t *dsfmt);
 static void period_certification(dsfmt_t *dsfmt);
 
-#if defined(HAVE_SSE2)
-/** 1 in 64bit for sse2 */
-static const union X128I_T sse2_int_one = {{1, 1}};
-/** 2.0 double for sse2 */
-static const union X128D_T sse2_double_two = {{2.0, 2.0}};
-/** -1.0 double for sse2 */
-static const union X128D_T sse2_double_m_one = {{-1.0, -1.0}};
+#if defined(HAVE_SSE2) || defined (HAVE_SIMD128)
+/** 1 in 64bit for sse2/wasm-simd128 */
+static const union X128I_T s128_int_one = {{1, 1}};
+/** 2.0 double for sse2/wasm-simd128 */
+static const union X128D_T s128_double_two = {{2.0, 2.0}};
+/** -1.0 double for sse2/wasm-simd128 */
+static const union X128D_T s128_double_m_one = {{-1.0, -1.0}};
 #endif
 
 /**
@@ -67,18 +67,6 @@ inline static int idxof(int i) {
 #endif
 
 #if defined(HAVE_SSE2)
-#if defined(__EMSCRIPTEN__)
-inline static void convert_c0o1(w128_t *w) {
-    w->sd = wasm_f64x2_add(w->sd, sse2_double_m_one.d128);
-}
-inline static void convert_o0c1(w128_t *w) {
-    w->sd = wasm_f64x2_sub(sse2_double_two.d128, w->sd);
-}
-inline static void convert_o0o1(w128_t *w) {
-    w->si = wasm_v128_or(w->si, sse2_int_one.i128);
-    w->sd = wasm_f64x2_add(w->sd, sse2_double_m_one.d128);
-}
-#else
 /**
  * This function converts the double precision floating point numbers which
  * distribute uniformly in the range [1, 2) to those which distribute uniformly
@@ -86,7 +74,7 @@ inline static void convert_o0o1(w128_t *w) {
  * @param w 128bit stracture of double precision floating point numbers (I/O)
  */
 inline static void convert_c0o1(w128_t *w) {
-    w->sd = _mm_add_pd(w->sd, sse2_double_m_one.d128);
+    w->sd = _mm_add_pd(w->sd, s128_double_m_one.d128);
 }
 
 /**
@@ -96,7 +84,7 @@ inline static void convert_c0o1(w128_t *w) {
  * @param w 128bit stracture of double precision floating point numbers (I/O)
  */
 inline static void convert_o0c1(w128_t *w) {
-    w->sd = _mm_sub_pd(sse2_double_two.d128, w->sd);
+    w->sd = _mm_sub_pd(s128_double_two.d128, w->sd);
 }
 
 /**
@@ -106,10 +94,20 @@ inline static void convert_o0c1(w128_t *w) {
  * @param w 128bit stracture of double precision floating point numbers (I/O)
  */
 inline static void convert_o0o1(w128_t *w) {
-    w->si = _mm_or_si128(w->si, sse2_int_one.i128);
-    w->sd = _mm_add_pd(w->sd, sse2_double_m_one.d128);
+    w->si = _mm_or_si128(w->si, s128_int_one.i128);
+    w->sd = _mm_add_pd(w->sd, s128_double_m_one.d128);
 }
-#endif
+#elif defined(HAVE_SIMD128) /* WebAssembly SIMD */
+inline static void convert_c0o1(w128_t *w) {
+    w->sd = wasm_f64x2_add(w->sd, s128_double_m_one.d128);
+}
+inline static void convert_o0c1(w128_t *w) {
+    w->sd = wasm_f64x2_sub(s128_double_two.d128, w->sd);
+}
+inline static void convert_o0o1(w128_t *w) {
+    w->si = wasm_v128_or(w->si, s128_int_one.i128);
+    w->sd = wasm_f64x2_add(w->sd, s128_double_m_one.d128);
+}
 #else /* standard C and altivec */
 /**
  * This function converts the double precision floating point numbers which
